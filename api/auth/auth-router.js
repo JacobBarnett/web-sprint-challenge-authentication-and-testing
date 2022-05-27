@@ -1,7 +1,29 @@
-const router = require('express').Router();
+const { response } = require("../server");
+const router = require("express").Router();
+const jwt = require("jsonwebtoken");
+const { registerUser, findByUserName, validatePassword } = require("./model");
+const { secret } = require("../auth/secret");
 
-router.post('/register', (req, res) => {
-  res.end('implement register, please!');
+router.post("/register", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    res.status(400);
+    res.end("username and password required");
+    return;
+  }
+  try {
+    const user = await registerUser(req.body);
+    res.setHeader("Content-type", "application/json");
+    res.end(JSON.stringify(user));
+  } catch (e) {
+    res.status(500);
+    if (e.code === "SQLITE_CONSTRAINT_UNIQUE") {
+      res.end("username taken");
+      return;
+    }
+    console.log(e);
+    res.end();
+  }
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.
@@ -29,8 +51,23 @@ router.post('/register', (req, res) => {
   */
 });
 
-router.post('/login', (req, res) => {
-  res.end('implement login, please!');
+router.post("/login", async (req, res) => {
+  const { username, password } = req.body;
+  if (!username || !password) {
+    res.status(400);
+    res.end("username and password required");
+    return;
+  }
+  const user = await findByUserName(username);
+  if (!user || !validatePassword(user, password)) {
+    res.status(403);
+    res.end("invalid credentials");
+    return;
+  }
+  const token = jwt.sign({ id: user.id }, secret);
+
+  res.setHeader("Content-type", "application/json");
+  res.end(JSON.stringify({ message: `welcome, ${user.username}`, token }));
   /*
     IMPLEMENT
     You are welcome to build additional middlewares to help with the endpoint's functionality.

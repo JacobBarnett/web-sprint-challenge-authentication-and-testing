@@ -1,4 +1,23 @@
+const jwt = require("jsonwebtoken");
+const { secret } = require("../auth/secret");
+
 module.exports = (req, res, next) => {
+  const authHeader = req.headers["authorization"];
+  if (!authHeader || !authHeader.startsWith("Bearer")) {
+    res.status(403);
+    res.end("token required");
+    return;
+  }
+
+  const token = authHeader.substring(7);
+  try {
+    jwt.verify(token, secret);
+  } catch {
+    res.status(403);
+
+    res.end("token invalid");
+    return;
+  }
   next();
   /*
     IMPLEMENT
